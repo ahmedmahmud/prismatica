@@ -5,7 +5,7 @@
 
 use magick_rust::{MagickWand, magick_wand_genesis, MagickError};
 use serde_json::Value;
-use std::{sync::Once, path::Path};
+use std::{sync::Once, path::Path, thread, time};
 use include_dir::{include_dir, Dir};
 
 static PROJECT_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/flavors");
@@ -32,6 +32,16 @@ fn convert(file_path: String, noise: String, palette: String) -> Result<(), Magi
 
   let file_name = gen_new_name(file_path, palette);
   image_wand.write_image(&file_name)
+}
+
+#[tauri::command(async)]
+fn get_image() -> Vec<u8> {
+  println!("inside");
+  let wand = MagickWand::new();
+  wand.read_image("test.jpg");
+  thread::sleep(time::Duration::from_secs(5));
+  println!("outside");
+  wand.write_image_blob("jpg").unwrap()
 }
 
 fn main() {
@@ -80,6 +90,7 @@ fn main() {
       }
       Ok(())
     })
+    .invoke_handler(tauri::generate_handler![get_image])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 
