@@ -71,7 +71,11 @@
   {#each images as image}
     <div class="pb-20 break-inside-avoid">
       {#await image}
-        <p>...waiting</p>
+        <div class="mx-auto border-t-transparent border-solid animate-spin rounded-full border-neutral-content border-4 h-36 w-36 mb-10"></div>
+        <div class="flex gap-5">
+          <button class="btn btn-primary flex-1 shadow-xl" disabled>Download</button>
+          <button class="btn btn-secondary flex-1 shadow-xl" disabled>View</button>
+        </div>
       {:then { data, url }}
         <img src={url} class="mb-5 rounded-lg shadow-xl mx-auto" alt="" />
         <div class="flex gap-5">
