@@ -29,7 +29,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.polycrylate.prismatica",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -61,6 +61,32 @@
         "title": "prismatica",
         "width": 800
       }
-    ]
+    ],
+    "cli": {
+      "description": "description", 
+      "longDescription": "long_description", 
+      "beforeHelp": "pre_help", 
+      "afterHelp": "post_help", 
+      "args": [
+        {
+          "name": "source",
+          "index": 1,
+          "takesValue": true
+        },
+        {
+          "name": "noise",
+          "short": "n",
+          "takesValue": true,
+          "possibleValues": ["0", "1", "2", "3", "4"]
+        },
+        {
+          "name": "palette",
+          "short": "p",
+          "takesValue": true,
+          "possibleValues": ["latte", "frappe", "macchiato", "mocha"]
+        }
+      ], 
+      "subcommands": {}
+    }
   }
 }
