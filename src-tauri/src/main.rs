@@ -36,11 +36,8 @@ fn convert(file_path: String, noise: String, palette: String) -> Result<(), Magi
 
 #[tauri::command(async)]
 fn get_image() -> Vec<u8> {
-  println!("inside");
   let wand = MagickWand::new();
   wand.read_image("test.jpg");
-  thread::sleep(time::Duration::from_secs(5));
-  println!("outside");
   wand.write_image_blob("jpg").unwrap()
 }
 
