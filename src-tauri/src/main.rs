@@ -5,7 +5,7 @@
 
 use magick_rust::{MagickWand, magick_wand_genesis, MagickError};
 use serde_json::Value;
-use std::{sync::Once, path::Path, thread, time};
+use std::{sync::Once, path::Path};
 use include_dir::{include_dir, Dir};
 
 static PROJECT_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/flavors");
@@ -20,25 +20,44 @@ fn gen_new_name(file_path: String, palette: String) -> String {
 }
 
 // Convert image using hald clut
-fn convert(file_path: String, noise: String, palette: String) -> Result<(), MagickError> {
+fn convert(file_path: String, noise: String, palette: String) -> Result<MagickWand, MagickError> {
   let image_wand = MagickWand::new();
   image_wand.read_image(&file_path)?;
   
   let lut_wand = MagickWand::new();
+  dbg!(format!("noise-{noise}/{palette}.png"));
   let lut_bytes = PROJECT_DIR.get_file(format!("noise-{noise}/{palette}.png")).unwrap().contents();
   lut_wand.read_image_blob(lut_bytes)?;
 
   image_wand.hald_clut_image(&lut_wand)?;
 
-  let file_name = gen_new_name(file_path, palette);
-  image_wand.write_image(&file_name)
+  Ok(image_wand)
 }
 
-#[tauri::command(async)]
-fn get_image() -> Vec<u8> {
+fn convert_and_save(file_path: String, noise: String, palette: String) -> Result<(), MagickError> {
+  let wand = convert(file_path.clone(), noise, palette.clone())?;
+
+  let file_name = gen_new_name(file_path, palette);
+  wand.write_image(&file_name)
+}
+
+#[tauri::command(async rename_all = "snake_case")]
+fn convert_and_blob(file_path: String, noise: String, palette: String) -> Vec<u8> {
+  dbg!(&file_path);
+
+  match convert(file_path, noise, palette) {
+    Ok(wand) => wand.write_image_blob("png").unwrap(),
+    Err(_) => panic!("Failed to convert image"),
+  }
+}
+
+#[tauri::command(rename_all = "snake_case")]
+fn save_from_blob(file_path: String, palette:String, blob: Vec<u8>) {
   let wand = MagickWand::new();
-  wand.read_image("test.jpg");
-  wand.write_image_blob("jpg").unwrap()
+  wand.read_image_blob(blob);
+
+  let file_name = gen_new_name(file_path, palette);
+  wand.write_image(&file_name);
 }
 
 fn main() {
@@ -72,7 +91,7 @@ fn main() {
               _ => panic!("Palette provided is not a string")
             };
 
-            match convert(file_path, noise, palette).err() {
+            match convert_and_save(file_path, noise, palette).err() {
               Some(err) => panic!("{err}"),
               None => {}
             };
@@ -87,7 +106,7 @@ fn main() {
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![get_image])
+    .invoke_handler(tauri::generate_handler![convert_and_blob, save_from_blob])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 
