@@ -60,7 +60,7 @@
   <div class="tabs tabs-boxed inline-flex">
     {#each tabs as tab}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="tab {selected_tab === tab ? 'tab-active' : ''}" on:click={switch_tab(tab)}>
+      <div class="tab sm:tab-lg {selected_tab === tab ? 'tab-active' : ''}" on:click={switch_tab(tab)}>
         {tab.charAt(0).toUpperCase() + tab.slice(1)}
       </div>
     {/each}

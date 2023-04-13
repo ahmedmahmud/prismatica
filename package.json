@@ -27,6 +27,7 @@
 	"type": "module",
 	"dependencies": {
 		"@tauri-apps/api": "^1.2.0",
-		"daisyui": "^2.51.5"
+		"daisyui": "^2.51.5",
+		"theme-change": "^2.5.0"
 	}
 }

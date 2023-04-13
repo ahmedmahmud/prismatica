@@ -3,9 +3,9 @@
 ```ocaml
 Prismatica
 ```
-<!-- ![Preview](assets/output.png) -->
+![Preview](assets/preview.png)
 
-<samp>Convert image colors to palettes</samp>
+<samp>Convert an image's colors to different palette</samp>
 
 ---
 <div align="left">
