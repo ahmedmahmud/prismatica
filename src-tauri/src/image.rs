@@ -1,54 +1,104 @@
-use magick_rust::{MagickWand, MagickError};
-use std::path::Path;
 use include_dir::{include_dir, Dir};
+use magick_rust::{MagickError, MagickWand};
+use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 static PROJECT_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/flavors");
 
-fn gen_new_name(file_path: String, palette: String) -> String {
-  let path = Path::new(&file_path);
-  let file_stem = path.file_stem().unwrap().to_str().unwrap();
-  let extension = path.extension().unwrap().to_str().unwrap();
-
-  format!("{palette}-{file_stem}.{extension}")
+#[derive(Serialize, Deserialize)]
+pub struct OutputImage {
+    source: InputImage,
+    blob: Vec<u8>,
 }
 
-// Convert image using hald clut
-fn convert(file_path: String, noise: String, palette: String) -> Result<MagickWand, MagickError> {
-  let image_wand = MagickWand::new();
-  image_wand.read_image(&file_path)?;
-  
-  let lut_wand = MagickWand::new();
-  dbg!(format!("noise-{noise}/{palette}.png"));
-  let lut_bytes = PROJECT_DIR.get_file(format!("noise-{noise}/{palette}.png")).unwrap().contents();
-  lut_wand.read_image_blob(lut_bytes)?;
+impl OutputImage {
+    fn from(source: InputImage, blob: Vec<u8>) -> Self {
+        OutputImage { source, blob }
+    }
 
-  image_wand.hald_clut_image(&lut_wand)?;
+    pub fn save(self) {
+        let wand = MagickWand::new();
+        let output_name = format!(
+            "{}-{}-n{}.{}",
+            self.source.stem, self.source.palette, self.source.noise, self.source.ext
+        );
 
-  Ok(image_wand)
+        wand.read_image_blob(self.blob);
+        wand.write_image(&output_name);
+    }
 }
 
-pub fn convert_and_save(file_path: String, noise: String, palette: String) -> Result<(), MagickError> {
-  let wand = convert(file_path.clone(), noise, palette.clone())?;
-
-  let file_name = gen_new_name(file_path, palette);
-  wand.write_image(&file_name)
+#[derive(Serialize, Deserialize)]
+struct InputImage {
+    path: String,
+    stem: String,
+    ext: String,
+    theme: String,
+    palette: String,
+    noise: String,
 }
 
-#[tauri::command(async rename_all = "snake_case")]
-pub fn convert_and_blob(file_path: String, noise: String, palette: String) -> Vec<u8> {
-  dbg!(&file_path);
+impl InputImage {
+    fn from(path_s: String, theme: String, palette: String, noise: String) -> Self {
+        let path = Path::new(&path_s);
+        let stem = path.file_stem().unwrap().to_str().unwrap().to_string();
+        let ext = path.extension().unwrap().to_str().unwrap().to_string();
 
-  match convert(file_path, noise, palette) {
-    Ok(wand) => wand.write_image_blob("png").unwrap(),
-    Err(_) => panic!("Failed to convert image"),
+        InputImage {
+            path: path_s,
+            stem,
+            ext,
+            theme,
+            palette,
+            noise,
+        }
+    }
+}
+
+// MagickError does not derive Serialize, so we make our own custom Error
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+  #[error(transparent)]
+  Magick(#[from] MagickError)
+}
+
+impl serde::Serialize for Error {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::ser::Serializer,
+  {
+    serializer.serialize_str(self.to_string().as_ref())
   }
 }
 
-#[tauri::command(rename_all = "snake_case")]
-pub fn save_from_blob(file_path: String, palette:String, blob: Vec<u8>) {
-  let wand = MagickWand::new();
-  wand.read_image_blob(blob);
+// Return a wand of `image` that has been converted
+// TODO: handle errors properly
+#[tauri::command(async)]
+pub fn convert(
+    path: String,
+    theme: String,
+    palette: String,
+    noise: String,
+) -> Result<OutputImage, Error> {
+    let image = InputImage::from(path, theme, palette, noise);
 
-  let file_name = gen_new_name(file_path, palette);
-  wand.write_image(&file_name);
+    let image_wand = MagickWand::new();
+    image_wand.read_image(&image.path)?;
+
+    let lut_wand = MagickWand::new();
+    let lut_bytes = PROJECT_DIR
+        .get_file(format!("noise-{}/{}.png", image.noise, image.palette))
+        .unwrap()
+        .contents();
+    lut_wand.read_image_blob(lut_bytes)?;
+
+    image_wand.hald_clut_image(&lut_wand)?;
+    let blob = image_wand.write_image_blob(&image.ext)?;
+
+    Ok(OutputImage::from(image, blob))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn save_output(image: OutputImage) {
+    image.save();
 }

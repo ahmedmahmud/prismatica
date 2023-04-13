@@ -85,7 +85,7 @@
           "name": "palette",
           "short": "p",
           "takesValue": true,
-          "possibleValues": ["latte", "frappe", "macchiato", "mocha"]
+          "possibleValues": ["latte", "frappe", "macchiato", "mocha", "oled"]
         }
       ], 
       "subcommands": {}

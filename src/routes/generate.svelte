@@ -9,9 +9,23 @@
     noise: string[];
   }
 
+  interface InputImage {
+    path: string,
+    stem: string,
+    ext: string,
+    theme: string,
+    palette: string,
+    noise: string,
+  } 
+  
+  interface OutputImage {
+    source: InputImage;
+    blob: number[];
+  }
+
   const themes: { [key: string]: Theme } = {
     catppuccin: {
-      palettes: ["latte", "frappe", "macchiato", "mocha"],
+      palettes: ["latte", "frappe", "macchiato", "mocha", "oled"],
       noise: ["0", "1", "2", "3", "4"],
     },
   };
@@ -23,28 +37,22 @@
   let switch_tab = (tab: string) => () => selected_tab = tab;
 
   let get_image = async (palette: String, noise: String) => {
-    const data: ArrayBufferLike = await invoke("convert_and_blob", {
-      file_path,
+    const data: OutputImage = await invoke("convert", {
+      path: file_path,
+      theme: "catppuccin",
       palette,
       noise,
     });
-    const array = new Uint8Array(data);
+
+    const array = new Uint8Array(data.blob);
     const blob = new Blob([array], { type: "image/jpeg" });
     return { data, url: URL.createObjectURL(blob) };
   };
 
-  let blobs = theme.palettes.map((p) => {
-    let promises = theme.noise.map((n) => {
-      return get_image(p, n);
-    });
-    return {
-      palette: p,
-      images: promises,
-    };
-  });
+  $: images = theme.noise.map((n) => get_image(selected_tab, n));
 
-  const download_image = (blob: ArrayBufferLike, palette: String, noise: String) => () => {
-    invoke("save_from_blob", { blob, file_path, palette, noise });
+  const download_image = (image: OutputImage) => () => {
+    invoke("save_output", { image });
   }
 </script>
 
@@ -60,27 +68,23 @@
 </div>
 
 <div class="columns-md gap-20 py-10 px-20">
-  {#each blobs as blob_g}
-    {#if selected_tab === blob_g.palette}
-      {#each blob_g.images as promise, n}
-        <div class="pb-20 break-inside-avoid">
-          {#await promise}
-            <p>...waiting</p>
-          {:then { data, url }}
-            <img src={url} class="mb-5 rounded-lg shadow-xl mx-auto" alt="" />
-            <div class="flex gap-5">
-              <button class="btn btn-primary flex-1 shadow-xl" on:click={download_image(data, blob_g.palette, n.toString())}>Download</button>
-              <label class="btn btn-secondary flex-1 shadow-xl" for={`${blob_g.palette}-${n}`}>View</label>
-            </div>
-            <input type="checkbox" id={`${blob_g.palette}-${n}`} class="modal-toggle" />
-            <label for={`${blob_g.palette}-${n}`} class="modal cursor-pointer p-10">
-              <img src={url} class="rounded-lg shadow-xl max-h-full" alt="" />
-            </label>
-          {:catch error}
-            <p style="color: red">{error.message}</p>
-          {/await}
+  {#each images as image}
+    <div class="pb-20 break-inside-avoid">
+      {#await image}
+        <p>...waiting</p>
+      {:then { data, url }}
+        <img src={url} class="mb-5 rounded-lg shadow-xl mx-auto" alt="" />
+        <div class="flex gap-5">
+          <button class="btn btn-primary flex-1 shadow-xl" on:click={download_image(data)}>Download</button>
+          <label class="btn btn-secondary flex-1 shadow-xl" for={`${data.source.palette}-${data.source.noise}`}>View</label>
         </div>
-      {/each}
-    {/if}
+        <input type="checkbox" id={`${data.source.palette}-${data.source.noise}`} class="modal-toggle" />
+        <label for={`${data.source.palette}-${data.source.noise}`} class="modal cursor-pointer p-10">
+          <img src={url} class="rounded-lg shadow-xl max-h-full" alt="" />
+        </label>
+      {:catch error}
+        <p style="color: red">{error.message}</p>
+      {/await}
+    </div>
   {/each}
 </div>
