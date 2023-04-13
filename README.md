@@ -1,38 +1,44 @@
-# create-svelte
+<div align="center">
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+```ocaml
+Prismatica
+```
+<!-- ![Preview](assets/output.png) -->
 
-## Creating a project
+<samp>Convert image colors to palettes</samp>
 
-If you're seeing this, you've probably already done this step. Congrats!
+---
+<div align="left">
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+> 🚧 ~ This project is in development
 
-# create a new project in my-app
-npm create svelte@latest my-app
+## <samp> Building </samp>
+Clone repo
+```console
+git clone https://github.com/ahmedmahmud/prismatica.git
+cd prismatica
 ```
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+Build the tauri app
+```console
+npm run tauri build
+```
+The output directory for the binary is
+```
+./src-tauri/target/release
 ```
 
-## Building
+## <samp> Usage </samp>
+There are two ways to use this app:
+- GUI
+- CLI
 
-To create a production version of your app:
+### GUI
+> *🚧 Under construction*
 
-```bash
-npm run build
+### CLI
+Run the CLI with the path to the input image, the noise amount and the desired palette
+```console
+./prismatica path/to/image.png -n 2 -p mocha
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+This will create a file `mocha-image.png` for your converted image
