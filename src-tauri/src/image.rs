@@ -3,7 +3,7 @@ use magick_rust::{MagickError, MagickWand};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-static PROJECT_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/flavors");
+static NOISE_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/noise");
 
 #[derive(Serialize, Deserialize)]
 pub struct OutputImage {
@@ -39,18 +39,18 @@ struct InputImage {
 }
 
 impl InputImage {
-    fn from(path_s: String, theme: String, palette: String, noise: String) -> Self {
-        let path = Path::new(&path_s);
+    fn from(path_s: &str, theme: &str, palette: &str, noise: &str) -> Self {
+        let path = Path::new(path_s);
         let stem = path.file_stem().unwrap().to_str().unwrap().to_string();
         let ext = path.extension().unwrap().to_str().unwrap().to_string();
 
         InputImage {
-            path: path_s,
+            path: path_s.to_owned(),
             stem,
             ext,
-            theme,
-            palette,
-            noise,
+            theme: theme.to_owned(),
+            palette: palette.to_owned(),
+            noise: noise.to_owned(),
         }
     }
 }
@@ -58,36 +58,34 @@ impl InputImage {
 // MagickError does not derive Serialize, so we make our own custom Error
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-  #[error(transparent)]
-  Magick(#[from] MagickError)
+    #[error(transparent)]
+    Magick(#[from] MagickError),
 }
 
 impl serde::Serialize for Error {
-  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: serde::ser::Serializer,
-  {
-    serializer.serialize_str(self.to_string().as_ref())
-  }
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_ref())
+    }
 }
 
 // Return a wand of `image` that has been converted
 // TODO: handle errors properly
 #[tauri::command(async)]
-pub fn convert(
-    path: String,
-    theme: String,
-    palette: String,
-    noise: String,
-) -> Result<OutputImage, Error> {
+pub fn convert(path: &str, theme: &str, palette: &str, noise: &str) -> Result<OutputImage, Error> {
     let image = InputImage::from(path, theme, palette, noise);
 
     let image_wand = MagickWand::new();
     image_wand.read_image(&image.path)?;
 
     let lut_wand = MagickWand::new();
-    let lut_bytes = PROJECT_DIR
-        .get_file(format!("noise-{}/{}.png", image.noise, image.palette))
+    let lut_bytes = NOISE_DIR
+        .get_file(format!(
+            "{}/{}/noise_{}.png",
+            image.theme, image.palette, image.noise
+        ))
         .unwrap()
         .contents();
     lut_wand.read_image_blob(lut_bytes)?;

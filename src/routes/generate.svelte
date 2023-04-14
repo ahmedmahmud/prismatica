@@ -4,11 +4,6 @@
   export let chosen_theme: string;
   export let file_path: string;
 
-  interface Theme {
-    palettes: string[];
-    noise: string[];
-  }
-
   interface InputImage {
     path: string,
     stem: string,
@@ -23,33 +18,32 @@
     blob: number[];
   }
 
-  const themes: { [key: string]: Theme } = {
-    catppuccin: {
-      palettes: ["latte", "frappe", "macchiato", "mocha", "oled"],
-      noise: ["0", "1", "2", "3", "4"],
-    },
+  const noise_levels = ["0", "1", "2", "3", "4"];
+
+  const themes: { [key: string]: string[] } = {
+    catppuccin: ["latte", "frappe", "macchiato", "mocha", "oled"],
+    rose_pine: ["moon"]
   };
 
-  let theme = themes[chosen_theme];
-  let tabs = theme.palettes;
-  let selected_tab = tabs[0];
+  let palettes = themes[chosen_theme];
+  let selected_tab = palettes[0];
 
   let switch_tab = (tab: string) => () => selected_tab = tab;
 
   let get_image = async (palette: String, noise: String) => {
     const data: OutputImage = await invoke("convert", {
       path: file_path,
-      theme: "catppuccin",
+      theme: chosen_theme,
       palette,
       noise,
     });
 
     const array = new Uint8Array(data.blob);
-    const blob = new Blob([array], { type: "image/jpeg" });
+    const blob = new Blob([array], { type: `image/png` });
     return { data, url: URL.createObjectURL(blob) };
   };
 
-  $: images = theme.noise.map((n) => get_image(selected_tab, n));
+  $: images = noise_levels.map((n) => get_image(selected_tab, n));
 
   const download_image = (image: OutputImage) => () => {
     invoke("save_output", { image });
@@ -58,7 +52,7 @@
 
 <div class="flex place-content-center mt-10">
   <div class="tabs tabs-boxed inline-flex">
-    {#each tabs as tab}
+    {#each palettes as tab}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <div class="tab sm:tab-lg {selected_tab === tab ? 'tab-active' : ''}" on:click={switch_tab(tab)}>
         {tab.charAt(0).toUpperCase() + tab.slice(1)}

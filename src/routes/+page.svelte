@@ -4,10 +4,8 @@
   import { onMount } from 'svelte'
   import { themeChange } from 'theme-change'
 
-  // NOTE: the element that is using one of the theme attributes must be in the DOM on mount
   onMount(() => {
     themeChange(false)
-    // 👆 false parameter is required for svelte
   });
 
   let theme = "";
@@ -77,6 +75,7 @@
           >
             <option value="" disabled selected>Theme</option>
             <option value="catppuccin">Catppuccin</option>
+            <option value="rose_pine">Rose Pine</option>
           </select>
           <button class="btn btn-block" on:click={ask_for_file}>Choose Image</button>
           {#if file}

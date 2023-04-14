@@ -4,7 +4,6 @@
 )]
 
 use magick_rust::magick_wand_genesis;
-use serde_json::Value;
 use std::sync::Once;
 
 mod image;
@@ -22,35 +21,24 @@ fn main() {
         .setup(|app| {
             let handle = app.handle();
             match app.get_cli_matches() {
-                Ok(mut matches) => {
-                    let file_path = matches.args.remove("source").unwrap();
-                    let noise = matches.args.remove("noise").unwrap();
-                    let palette = matches.args.remove("palette").unwrap();
+                Ok(matches) => {
+                    let args = ["source", "theme", "palette", "noise"]
+                        .into_iter()
+                        .map(|arg| (arg, matches.args.get(arg).expect(&format!("{} arg does not exist", arg))))
+                        .collect::<Vec<_>>();
 
-                    if file_path.occurrences != 0
-                        || noise.occurrences != 0
-                        || palette.occurrences != 0
-                    {
-                        let file_path = match file_path.value {
-                            Value::String(v) => v,
-                            _ => panic!("File path provided is not a string"),
-                        };
+                    if args.iter().any(|(_, arg)| arg.occurrences > 0) {
+                        let values = args
+                            .iter()
+                            .map(|(name, arg)| arg.value.as_str().expect(&format!("{} arg is not a string", name)))
+                            .collect::<Vec<_>>();
 
-                        let noise = match noise.value {
-                            Value::String(v) => v,
-                            _ => panic!("Noise provided is not a string"),
-                        };
-
-                        let palette = match palette.value {
-                            Value::String(v) => v,
-                            _ => panic!("Palette provided is not a string"),
-                        };
-
-                        let output = convert(file_path, "catppuccin".to_owned(), palette, noise);
+                        let output = convert(values[0], values[1], values[2], values[3]);
                         output.map_or_else(|err| panic!("{err}"), |o| o.save());
 
                         handle.exit(0);
                     }
+                    
                     // No args provided, continue with frontend launch
                 }
                 Err(err) => {

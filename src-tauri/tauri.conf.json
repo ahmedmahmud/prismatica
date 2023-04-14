@@ -85,7 +85,13 @@
           "name": "palette",
           "short": "p",
           "takesValue": true,
-          "possibleValues": ["latte", "frappe", "macchiato", "mocha", "oled"]
+          "possibleValues": ["latte", "frappe", "macchiato", "mocha", "oled", "moon"]
+        },
+        {
+          "name": "theme",
+          "short": "t",
+          "takesValue": true,
+          "possibleValues": ["catppuccin", "rose_pine"]
         }
       ], 
       "subcommands": {}
