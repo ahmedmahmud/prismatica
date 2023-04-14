@@ -1,7 +1,8 @@
+use image::{RgbaImage, GenericImageView};
 use include_dir::{include_dir, Dir};
 use magick_rust::{MagickError, MagickWand};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::{path::Path, io::Cursor};
 
 static NOISE_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/noise");
 
@@ -77,23 +78,34 @@ impl serde::Serialize for Error {
 pub fn convert(path: &str, theme: &str, palette: &str, noise: &str) -> Result<OutputImage, Error> {
     let image = InputImage::from(path, theme, palette, noise);
 
-    let image_wand = MagickWand::new();
-    image_wand.read_image(&image.path)?;
-
-    let lut_wand = MagickWand::new();
-    let lut_bytes = NOISE_DIR
+    let input = image::open(&image.path).unwrap();
+    let clut_bytes =  NOISE_DIR
         .get_file(format!(
             "{}/{}/noise_{}.png",
             image.theme, image.palette, image.noise
         ))
         .unwrap()
         .contents();
-    lut_wand.read_image_blob(lut_bytes)?;
+    let clut = image::load_from_memory(clut_bytes).unwrap();
 
-    image_wand.hald_clut_image(&lut_wand)?;
-    let blob = image_wand.write_image_blob(&image.ext)?;
+    let mut output = RgbaImage::new(input.width(), input.height());
 
-    Ok(OutputImage::from(image, blob))
+    for (x, y, pixel) in input.pixels() {
+        let r = pixel[0] as u32 / 4;
+        let g = pixel[1] as u32 / 4;
+        let b = pixel[2] as u32 / 4;
+
+        let c_x = r % 64 + (g % 8) * 64;
+        let c_y = b * 8 + g / 8;
+
+        let pixel_out = clut.get_pixel(c_x, c_y);
+        output.put_pixel(x, y, pixel_out)
+    }
+
+    let mut buf = Cursor::new(Vec::new());
+    output.write_to(&mut buf, image::ImageOutputFormat::Png);
+
+    Ok(OutputImage::from(image, buf.into_inner()))
 }
 
 #[tauri::command(rename_all = "snake_case")]

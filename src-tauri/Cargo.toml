@@ -21,6 +21,7 @@ tauri = { version = "1.2.4", features = ["api-all", "cli", "macos-private-api"] 
 magick_rust = "0.17.0"
 include_dir = "0.7.3"
 thiserror = "1.0.40"
+image = "0.24.6"
 
 [features]
 # by default Tauri runs in production mode

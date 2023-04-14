@@ -24,13 +24,25 @@ fn main() {
                 Ok(matches) => {
                     let args = ["source", "theme", "palette", "noise"]
                         .into_iter()
-                        .map(|arg| (arg, matches.args.get(arg).expect(&format!("{} arg does not exist", arg))))
+                        .map(|arg| {
+                            (
+                                arg,
+                                matches
+                                    .args
+                                    .get(arg)
+                                    .expect(&format!("{} arg does not exist", arg)),
+                            )
+                        })
                         .collect::<Vec<_>>();
 
                     if args.iter().any(|(_, arg)| arg.occurrences > 0) {
                         let values = args
                             .iter()
-                            .map(|(name, arg)| arg.value.as_str().expect(&format!("{} arg is not a string", name)))
+                            .map(|(name, arg)| {
+                                arg.value
+                                    .as_str()
+                                    .expect(&format!("{} arg is not a string", name))
+                            })
                             .collect::<Vec<_>>();
 
                         let output = convert(values[0], values[1], values[2], values[3]);
@@ -38,7 +50,7 @@ fn main() {
 
                         handle.exit(0);
                     }
-                    
+
                     // No args provided, continue with frontend launch
                 }
                 Err(err) => {
