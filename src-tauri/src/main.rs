@@ -3,20 +3,10 @@
     windows_subsystem = "windows"
 )]
 
-use magick_rust::magick_wand_genesis;
-use std::sync::Once;
-
 mod image;
 use crate::image::{convert, save_output};
 
-static START: Once = Once::new();
-
 fn main() {
-    // Initialize magick wand
-    START.call_once(|| {
-        magick_wand_genesis();
-    });
-
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle();

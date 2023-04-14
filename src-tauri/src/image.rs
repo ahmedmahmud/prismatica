@@ -1,8 +1,7 @@
 use image::{RgbaImage, GenericImageView};
 use include_dir::{include_dir, Dir};
-use magick_rust::{MagickError, MagickWand};
 use serde::{Deserialize, Serialize};
-use std::{path::Path, io::Cursor};
+use std::{path::Path, io::Cursor, fs::write};
 
 static NOISE_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/noise");
 
@@ -18,14 +17,11 @@ impl OutputImage {
     }
 
     pub fn save(self) {
-        let wand = MagickWand::new();
         let output_name = format!(
             "{}-{}-n{}.{}",
             self.source.stem, self.source.palette, self.source.noise, self.source.ext
         );
-
-        wand.read_image_blob(self.blob);
-        wand.write_image(&output_name);
+        write(output_name, self.blob).expect("Failed to write image file")
     }
 }
 
@@ -56,26 +52,26 @@ impl InputImage {
     }
 }
 
-// MagickError does not derive Serialize, so we make our own custom Error
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    Magick(#[from] MagickError),
-}
+// Some errors do not derive Serialize, so we make our own custom Error
+// #[derive(Debug, thiserror::Error)]
+// pub enum Error {
+//     #[error(transparent)]
+//     Error(#[from] String),
+// }
 
-impl serde::Serialize for Error {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        serializer.serialize_str(self.to_string().as_ref())
-    }
-}
+// impl serde::Serialize for Error {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: serde::ser::Serializer,
+//     {
+//         serializer.serialize_str(self.to_string().as_ref())
+//     }
+// }
 
 // Return a wand of `image` that has been converted
 // TODO: handle errors properly
 #[tauri::command(async)]
-pub fn convert(path: &str, theme: &str, palette: &str, noise: &str) -> Result<OutputImage, Error> {
+pub fn convert(path: &str, theme: &str, palette: &str, noise: &str) -> Result<OutputImage, String> {
     let image = InputImage::from(path, theme, palette, noise);
 
     let input = image::open(&image.path).unwrap();
